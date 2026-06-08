@@ -197,6 +197,9 @@ async function handlePrepare(request: Request, env: Env) {
   const caption = optionalText((body as Record<string, unknown>).caption, 160) || `Release approved by ${petName} 🐾`;
   const width = optionalNumber((body as Record<string, unknown>).width);
   const height = optionalNumber((body as Record<string, unknown>).height);
+  if (!width || !height || width !== height) {
+    throw new Error('Image must be cropped to a square before upload.');
+  }
   const now = new Date().toISOString();
   const imageId = randomId('img');
 
@@ -252,7 +255,7 @@ async function handleUpload(request: Request, env: Env, imageId: string) {
 
   assertAllowedContentLength(request.headers.get('content-length'));
   const mimeType = assertAllowedContentType(request.headers.get('content-type'));
-  const bytes = await assertImageBytes(request, mimeType);
+  const bytes = await assertImageBytes(request, mimeType, { width: prepared.width, height: prepared.height });
 
   await env.PET_IMAGES.put(prepared.r2_key, bytes, {
     httpMetadata: { contentType: mimeType, cacheControl: 'public, max-age=31536000, immutable' },

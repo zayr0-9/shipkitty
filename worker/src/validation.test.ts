@@ -8,8 +8,8 @@ describe('upload validation', () => {
   });
 
   it('rejects invalid or oversized content-length values', () => {
-    expect(() => assertAllowedContentLength('100000')).not.toThrow();
-    expect(() => assertAllowedContentLength('100001')).toThrow('Image must be 100 KB or smaller.');
+    expect(() => assertAllowedContentLength('50000')).not.toThrow();
+    expect(() => assertAllowedContentLength('50001')).toThrow('Image must be 50 KB or smaller.');
     expect(() => assertAllowedContentLength('0')).toThrow('Invalid Content-Length header.');
   });
 

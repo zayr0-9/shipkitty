@@ -13,7 +13,8 @@ import {
   type UploadImageResponse,
 } from './api';
 import { CustomList } from './components/CustomList';
-import { compressImage, type CompressedImage } from './image';
+import { ImageCropEditor } from './components/ImageCropEditor';
+import { compressImage, type CompressedImage, type ImageCrop } from './image';
 
 type Status = 'idle' | 'compressing' | 'uploading' | 'done' | 'error';
 
@@ -79,6 +80,7 @@ function App() {
   const [petTitle, setPetTitle] = useState(petOptions[0].title);
   const [caption, setCaption] = useState(getPetCaption(petOptions[0]));
   const [file, setFile] = useState<File | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [compressed, setCompressed] = useState<CompressedImage | null>(null);
   const [result, setResult] = useState<UploadImageResponse | null>(null);
   const [status, setStatus] = useState<Status>('idle');
@@ -140,16 +142,31 @@ function App() {
 
     if (!nextFile) return;
 
+    setCropFile(nextFile);
+    setStatus('idle');
+    setMessage('Crop the image to a square before upload.');
+  }
+
+  async function handleCrop(crop: ImageCrop) {
+    if (!cropFile) return;
+
     try {
       setStatus('compressing');
-      const nextCompressed = await compressImage(nextFile);
+      const nextCompressed = await compressImage(cropFile, crop);
       setCompressed(nextCompressed);
+      setCropFile(null);
       setStatus('idle');
       setMessage(`Compressed to ${formatBytes(nextCompressed.blob.size)} (${nextCompressed.width}×${nextCompressed.height}).`);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Image compression failed.');
     }
+  }
+
+  function handleCropCancel() {
+    setCropFile(null);
+    setFile(null);
+    setMessage('Image upload canceled.');
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -425,7 +442,7 @@ function App() {
               </label>
             </div>
 
-            <p className={`min-h-6 ${statusClass}`}>{message || 'Images are resized client-side to WebP under 100 KB.'}</p>
+            <p className={`min-h-6 ${statusClass}`}>{message || 'Images are cropped square and resized client-side to WebP under 50 KB.'}</p>
 
             <button className={`${primaryButtonClass} w-full sm:w-auto`} type="submit" disabled={!sessionUser || status === 'compressing' || status === 'uploading'}>
               {!sessionUser ? 'Sign in first' : status === 'uploading' ? 'Uploading...' : 'Generate Markdown'}
@@ -434,14 +451,16 @@ function App() {
 
           <aside className={`${cardClass} flex flex-col gap-4 sm:gap-5`}>
             <h2 className="text-xl font-black text-slate-950 sm:text-2xl">Preview</h2>
-            {previewUrl ? (
+            {cropFile ? (
+              <ImageCropEditor file={cropFile} onCancel={handleCropCancel} onApply={handleCrop} />
+            ) : previewUrl ? (
               <img className="aspect-square w-full rounded-3xl bg-amber-100 object-cover" src={previewUrl} alt="Compressed pet preview" />
             ) : (
               <div className="grid min-h-56 place-items-center rounded-2xl border-2 border-dashed border-amber-200 p-4 text-center font-bold text-amber-800 sm:min-h-80 sm:rounded-3xl">
                 Choose an image to preview the compressed WebP.
               </div>
             )}
-            {compressed && <p className="text-slate-600">{formatBytes(compressed.blob.size)} · {compressed.width}×{compressed.height}</p>}
+            {compressed && !cropFile && <p className="text-slate-600">{formatBytes(compressed.blob.size)} · {compressed.width}×{compressed.height}</p>}
             {result && <a className="font-extrabold text-amber-700 underline decoration-amber-300 underline-offset-4" href={result.publicUrl} target="_blank" rel="noreferrer">Open public image</a>}
           </aside>
         </section>

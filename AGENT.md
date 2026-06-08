@@ -17,7 +17,7 @@ ShipKitty: a GitHub OAuth-authenticated pet/mascot image generator for GitHub re
 
 - `src/App.tsx`: main UI, auth bar, repo/release picker, upload flow
 - `src/api.ts`: frontend API client including auth/GitHub helper calls
-- `src/image.ts`: browser canvas compression to WebP under 100 KB
+- `src/image.ts`: browser canvas square crop/compression to WebP under 50 KB
 - `worker/src/index.ts`: Worker routing and endpoint handlers
 - `worker/src/auth.ts`: session cookie/hash helpers and auth guard
 - `worker/src/github.ts`: GitHub OAuth/API helper functions
@@ -93,7 +93,7 @@ wrangler secret put SESSION_SECRET --config worker/wrangler.toml
 - Keep image uploads rate-limited by hashed IP as a baseline guardrail.
 - API must validate browser-compressed images; never trust frontend compression alone.
 - Reject SVG and GIF.
-- Final upload size limit is `100_000` bytes.
+- Final upload size limit is `50_000` bytes and uploaded images must be square.
 - One active image per `repo_id + release_tag`; replacement should only delete old R2 object after new upload succeeds.
 - GitHub access tokens are server-only in D1; token-at-rest encryption is a recommended hardening follow-up.
 

@@ -15,11 +15,11 @@ export function assertAllowedContentLength(contentLength: string | null) {
     throw new Error('Invalid Content-Length header.');
   }
   if (size > MAX_UPLOAD_BYTES) {
-    throw new Error('Image must be 100 KB or smaller.');
+    throw new Error('Image must be 50 KB or smaller.');
   }
 }
 
-export async function assertImageBytes(request: Request, contentType: string) {
+export async function assertImageBytes(request: Request, contentType: string, expectedDimensions?: { width: number | null; height: number | null }) {
   const bytes = new Uint8Array(await request.arrayBuffer());
 
   if (bytes.byteLength === 0) {
@@ -27,11 +27,20 @@ export async function assertImageBytes(request: Request, contentType: string) {
   }
 
   if (bytes.byteLength > MAX_UPLOAD_BYTES) {
-    throw new Error('Image must be 100 KB or smaller.');
+    throw new Error('Image must be 50 KB or smaller.');
   }
 
   if (!magicBytesMatch(bytes, contentType)) {
     throw new Error('Image bytes do not match the declared content type.');
+  }
+
+  const dimensions = readWebpDimensions(bytes);
+  if (!dimensions || dimensions.width !== dimensions.height) {
+    throw new Error('Image must be square.');
+  }
+
+  if (expectedDimensions?.width && expectedDimensions?.height && (dimensions.width !== expectedDimensions.width || dimensions.height !== expectedDimensions.height)) {
+    throw new Error('Image dimensions do not match the prepared upload.');
   }
 
   return bytes;
@@ -55,4 +64,55 @@ export function magicBytesMatch(bytes: Uint8Array, contentType: string) {
 
 function ascii(bytes: Uint8Array, start: number, length: number) {
   return String.fromCharCode(...bytes.slice(start, start + length));
+}
+
+function readWebpDimensions(bytes: Uint8Array) {
+  if (!magicBytesMatch(bytes, 'image/webp')) return null;
+
+  let offset = 12;
+  while (offset + 8 <= bytes.length) {
+    const chunkType = ascii(bytes, offset, 4);
+    const chunkSize = readUint32Le(bytes, offset + 4);
+    const dataOffset = offset + 8;
+
+    if (dataOffset + chunkSize > bytes.length) return null;
+
+    if (chunkType === 'VP8X' && chunkSize >= 10) {
+      return {
+        width: readUint24Le(bytes, dataOffset + 4) + 1,
+        height: readUint24Le(bytes, dataOffset + 7) + 1,
+      };
+    }
+
+    if (chunkType === 'VP8 ' && chunkSize >= 10) {
+      return {
+        width: readUint16Le(bytes, dataOffset + 6) & 0x3fff,
+        height: readUint16Le(bytes, dataOffset + 8) & 0x3fff,
+      };
+    }
+
+    if (chunkType === 'VP8L' && chunkSize >= 5) {
+      const bits = bytes[dataOffset + 1] | (bytes[dataOffset + 2] << 8) | (bytes[dataOffset + 3] << 16) | (bytes[dataOffset + 4] << 24);
+      return {
+        width: (bits & 0x3fff) + 1,
+        height: ((bits >> 14) & 0x3fff) + 1,
+      };
+    }
+
+    offset = dataOffset + chunkSize + (chunkSize % 2);
+  }
+
+  return null;
+}
+
+function readUint16Le(bytes: Uint8Array, offset: number) {
+  return bytes[offset] | (bytes[offset + 1] << 8);
+}
+
+function readUint24Le(bytes: Uint8Array, offset: number) {
+  return bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16);
+}
+
+function readUint32Le(bytes: Uint8Array, offset: number) {
+  return bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
 }
