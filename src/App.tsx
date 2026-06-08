@@ -27,13 +27,10 @@ type PetOption = {
   emoji: string;
 };
 
-type ProjectOption = {
-  id: string;
-  owner: string;
-  repo: string;
-  description: string;
-  icon: string;
-};
+const repoPrivateLabel = {
+  true: '🔒',
+  false: '🌐',
+} satisfies Record<string, string>;
 
 const petOptions: PetOption[] = [
   { id: 'bobby', name: 'Bobby', title: 'Chief Purr Officer', emoji: '🐱' },
@@ -54,17 +51,11 @@ const petOptions: PetOption[] = [
   { id: 'poppy', name: 'Poppy', title: 'Product Panda', emoji: '🐼' },
 ];
 
-const projectOptions: ProjectOption[] = [
-  { id: 'karn/yggdrasil', owner: 'karn', repo: 'yggdrasil', description: 'Release notes demo project', icon: '🚀' },
-  { id: 'karn/shipkitty', owner: 'karn', repo: 'shipkitty', description: 'ShipKitty app releases', icon: '🐾' },
-  { id: 'octocat/hello-world', owner: 'octocat', repo: 'hello-world', description: 'Example GitHub repository', icon: '👋' },
-];
-
 function getPetCaption(pet: PetOption) {
   return `Release approved by ${pet.name} ${pet.emoji}`;
 }
 
-const exampleMarkdown = `<!-- shipkitty:start -->\n### Release approved by Bobby 🐱\n\n![Bobby approved this release](https://cdn.shipkitty.dev/r/karn/yggdrasil/v1.2.0/img_demo.webp)\n\n_Bobby, Chief Purr Officer_\n<!-- shipkitty:end -->`;
+const exampleMarkdown = `<!-- shipkitty:start -->\n### Release approved by Bobby 🐱\n\n<img\n    src="https://cdn.shipkitty.dev/r/karn/yggdrasil/v1.2.0/img_demo.webp"\n    alt="Bobby approved this release"\n    width="300"\n  />\n_Bobby, Chief Purr Officer_\n<!-- shipkitty:end -->`;
 
 const inputClass = 'w-full min-w-0 rounded-2xl border border-amber-200 bg-white/80 px-4 py-3 text-base text-slate-950 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20';
 const labelClass = 'flex min-w-0 flex-col gap-2 font-bold text-slate-700';
@@ -73,10 +64,10 @@ const primaryButtonClass = 'inline-flex min-h-12 items-center justify-center rou
 const secondaryButtonClass = 'inline-flex min-h-12 items-center justify-center rounded-full bg-amber-100 px-5 py-3 text-center font-extrabold text-amber-950 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60';
 
 function App() {
-  const [selectedProjectId, setSelectedProjectId] = useState(projectOptions[0].id);
-  const [owner, setOwner] = useState(projectOptions[0].owner);
-  const [repo, setRepo] = useState(projectOptions[0].repo);
-  const [releaseTag, setReleaseTag] = useState('v1.2.0');
+  const [selectedRepoId, setSelectedRepoId] = useState('');
+  const [owner, setOwner] = useState('');
+  const [repo, setRepo] = useState('');
+  const [releaseTag, setReleaseTag] = useState('');
   const [selectedPetId, setSelectedPetId] = useState(petOptions[0].id);
   const [petName, setPetName] = useState(petOptions[0].name);
   const [petTitle, setPetTitle] = useState(petOptions[0].title);
@@ -127,15 +118,6 @@ function App() {
     setPetName(nextPet.name);
     setPetTitle(nextPet.title);
     setCaption(getPetCaption(nextPet));
-  }
-
-  function handleProjectChange(nextProjectId: string) {
-    const nextProject = projectOptions.find((project) => project.id === nextProjectId);
-    if (!nextProject) return;
-
-    setSelectedProjectId(nextProject.id);
-    setOwner(nextProject.owner);
-    setRepo(nextProject.repo);
   }
 
   async function handleFileChange(nextFile: File | undefined) {
@@ -278,6 +260,7 @@ function App() {
       setRepoStatus('Loading GitHub repos...');
       const nextRepos = await fetchGitHubRepos();
       setRepos(nextRepos);
+      setSelectedRepoId('');
       setRepoStatus(nextRepos.length ? 'Choose a repo or keep typing manually.' : 'No accessible repos returned by GitHub.');
     } catch (error) {
       setRepoStatus(error instanceof Error ? error.message : 'Could not load repos.');
@@ -288,7 +271,7 @@ function App() {
     if (!fullName) return;
     const selected = repos.find((item) => item.fullName === fullName);
     if (!selected) return;
-    setSelectedProjectId('');
+    setSelectedRepoId(selected.fullName);
     setOwner(selected.owner);
     setRepo(selected.name);
     setReleases([]);
@@ -307,7 +290,7 @@ function App() {
     try {
       setRepoStatus('Verifying GitHub repo access...');
       const verified = await verifyGitHubRepo(owner, repo);
-      setSelectedProjectId('');
+      setSelectedRepoId(verified.fullName);
       setOwner(verified.owner);
       setRepo(verified.name);
       resetReleaseAppendState();
@@ -391,34 +374,27 @@ function App() {
               />
             </div>
 
-            <CustomList
-              label="Example GitHub project"
-              ariaLabel="Choose an example GitHub project"
-              options={projectOptions}
-              selectedId={selectedProjectId}
-              onChange={handleProjectChange}
-              getId={(project) => project.id}
-              getTitle={(project) => `${project.owner}/${project.repo}`}
-              getSubtitle={(project) => project.description}
-              getIcon={(project) => project.icon}
-            />
-
             <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4">
               <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end">
                 <button className={secondaryButtonClass} type="button" onClick={loadRepos} disabled={!sessionUser}>
                   Load my repos
                 </button>
-                <label className={`${labelClass} flex-1`}>
-                  Repo picker
-                  <select className={inputClass} value="" onChange={(event) => handleRepoSelect(event.target.value)} disabled={!repos.length}>
-                    <option value="">Choose from GitHub...</option>
-                    {repos.map((item) => (
-                      <option key={item.id} value={item.fullName}>
-                        {item.fullName}{item.private ? ' · private' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <CustomList
+                  label="Repo picker"
+                  ariaLabel="Choose a GitHub repository"
+                  options={repos}
+                  selectedId={selectedRepoId}
+                  onChange={handleRepoSelect}
+                  getId={(item) => item.fullName}
+                  getTitle={(item) => item.fullName}
+                  getSubtitle={(item) => `${item.private ? 'Private' : 'Public'}${item.permission ? ` · ${item.permission}` : ''}`}
+                  getIcon={(item) => repoPrivateLabel[String(item.private) as keyof typeof repoPrivateLabel]}
+                  placeholderTitle="Choose from GitHub..."
+                  placeholderSubtitle={repos.length ? 'Select a loaded repository' : 'Load repos to choose one'}
+                  placeholderIcon="📦"
+                  disabled={!repos.length}
+                  className="flex-1"
+                />
               </div>
               <p className="mt-3 text-sm font-bold text-amber-900">{repoStatus}</p>
             </div>
@@ -426,11 +402,11 @@ function App() {
             <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
               <label className={labelClass}>
                 GitHub owner
-                <input className={inputClass} value={owner} onChange={(event) => { setOwner(event.target.value); resetReleaseAppendState(); }} required pattern="[A-Za-z0-9_.\\-]+" />
+                <input className={inputClass} value={owner} onChange={(event) => { setOwner(event.target.value); setSelectedRepoId(''); resetReleaseAppendState(); }} required pattern="[A-Za-z0-9_.\\-]+" />
               </label>
               <label className={labelClass}>
                 Repo name
-                <input className={inputClass} value={repo} onChange={(event) => { setRepo(event.target.value); resetReleaseAppendState(); }} required pattern="[A-Za-z0-9_.\\-]+" />
+                <input className={inputClass} value={repo} onChange={(event) => { setRepo(event.target.value); setSelectedRepoId(''); resetReleaseAppendState(); }} required pattern="[A-Za-z0-9_.\\-]+" />
               </label>
               <button className={secondaryButtonClass} type="button" onClick={handleVerifyRepo} disabled={!sessionUser}>
                 Verify repo
@@ -532,7 +508,7 @@ function App() {
           <pre className="max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-slate-50 sm:break-words sm:rounded-3xl sm:p-5 sm:text-sm sm:leading-6">{markdown}</pre>
           {result?.html && (
             <details className="font-bold text-slate-800">
-              <summary className="cursor-pointer">HTML version with image width</summary>
+              <summary className="cursor-pointer">Compact HTML version</summary>
               <pre className="mt-4 max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-slate-50 sm:break-words sm:rounded-3xl sm:p-5 sm:text-sm sm:leading-6">{result.html}</pre>
             </details>
           )}

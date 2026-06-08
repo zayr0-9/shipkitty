@@ -213,7 +213,7 @@ export async function getReleaseImage(db: D1Database, owner: string, repo: strin
       `SELECT release_images.id, release_images.public_url, release_images.markdown, release_images.html
        FROM release_images
        JOIN repos ON repos.id = release_images.repo_id
-       WHERE repos.owner = ? AND repos.name = ? AND release_images.release_tag = ?`,
+       WHERE lower(repos.owner) = lower(?) AND lower(repos.name) = lower(?) AND release_images.release_tag = ?`,
     )
     .bind(owner, repo, tag)
     .first<{ id: string; public_url: string; markdown: string; html: string }>();
@@ -225,7 +225,7 @@ export async function getReleaseImageByPublicRoute(db: D1Database, owner: string
       `SELECT release_images.r2_key, release_images.mime_type
        FROM release_images
        JOIN repos ON repos.id = release_images.repo_id
-       WHERE repos.owner = ? AND repos.name = ? AND release_images.release_tag = ? AND release_images.id = ?`,
+       WHERE lower(repos.owner) = lower(?) AND lower(repos.name) = lower(?) AND release_images.release_tag = ? AND release_images.id = ?`,
     )
     .bind(owner, repo, tag, imageId)
     .first<{ r2_key: string; mime_type: string }>();

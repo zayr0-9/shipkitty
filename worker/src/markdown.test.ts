@@ -11,17 +11,19 @@ describe('markdown snippet generation', () => {
     });
 
     expect(markdown).toContain('### Release \\[approved\\] \\(really\\)\\!');
-    expect(markdown).toContain('Bobby\\_\\[x\\] approved this release');
+    expect(markdown).toContain('alt="Bobby_[x] approved this release"');
     expect(markdown).toContain('_Bobby\\_\\[x\\], Chief \\*Purr\\* Officer_');
   });
 
-  it('escapes URL delimiters in Markdown URLs', () => {
+  it('generates a width-controlled image tag', () => {
     const markdown = buildMarkdown({
       petName: 'Bobby',
       publicUrl: 'https://cdn.example.test/r/owner/repo/tag/img_(1).webp',
     });
 
-    expect(markdown).toContain('(https://cdn.example.test/r/owner/repo/tag/img_%281%29.webp)');
+    expect(markdown).toContain('<img\n    src="https://cdn.example.test/r/owner/repo/tag/img_(1).webp"');
+    expect(markdown).toContain('alt="Bobby approved this release"');
+    expect(markdown).toContain('width="300"');
   });
 
   it('escapes HTML attributes and text content', () => {
@@ -35,6 +37,7 @@ describe('markdown snippet generation', () => {
     expect(html).toContain('&lt;approved &amp; shipped&gt;');
     expect(html).toContain('src="https://cdn.example.test/img.webp?x=&quot;bad&quot;&amp;y=&lt;tag&gt;"');
     expect(html).toContain('alt="Bobby &quot;Cat&quot; approved this release"');
+    expect(html).toContain('width="300"');
     expect(html).toContain('<em>Bobby &quot;Cat&quot;, &lt;CPO&gt;</em>');
   });
 });
