@@ -37,7 +37,7 @@ export async function assertImageBytes(request: Request, contentType: string) {
   return bytes;
 }
 
-function magicBytesMatch(bytes: Uint8Array, contentType: string) {
+export function magicBytesMatch(bytes: Uint8Array, contentType: string) {
   if (contentType === 'image/webp') {
     return bytes.length >= 12 && ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 4) === 'WEBP';
   }

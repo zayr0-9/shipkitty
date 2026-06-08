@@ -2,26 +2,30 @@
 
 ## Project
 
-PetShip / Release Pets MVP stage 1: a no-OAuth pet/mascot image generator for GitHub release notes.
+PetShip / Release Pets MVP stage 2: a GitHub OAuth-authenticated pet/mascot image generator for GitHub release notes.
 
 ## Stack
 
 - Vite + React + TypeScript frontend in `src/`
 - Cloudflare Pages for static frontend deployment
 - Cloudflare Worker API in `worker/src/`
+- GitHub OAuth web flow handled by the Worker
 - Cloudflare R2 for uploaded image objects via `PET_IMAGES` binding
-- Cloudflare D1 for metadata via `DB` binding
+- Cloudflare D1 for metadata/auth/session storage via `DB` binding
 
 ## Important files
 
-- `src/App.tsx`: main UI and upload flow
+- `src/App.tsx`: main UI, auth bar, repo/release picker, upload flow
+- `src/api.ts`: frontend API client including auth/GitHub helper calls
 - `src/image.ts`: browser canvas compression to WebP under 100 KB
-- `src/api.ts`: frontend API client
 - `worker/src/index.ts`: Worker routing and endpoint handlers
-- `worker/src/db.ts`: D1 queries
+- `worker/src/auth.ts`: session cookie/hash helpers and auth guard
+- `worker/src/github.ts`: GitHub OAuth/API helper functions
+- `worker/src/db.ts`: D1 queries for auth, repos, pets, prepared/final images, audit
 - `worker/src/validation.ts`: upload size/type/magic-byte checks
 - `worker/src/markdown.ts`: GitHub Markdown + HTML snippet generation
-- `worker/migrations/0001_initial.sql`: D1 schema
+- `worker/migrations/0001_initial.sql`: initial D1 schema
+- `worker/migrations/0002_github_oauth.sql`: OAuth/session/token/user-repo migration
 - `worker/wrangler.toml`: Worker config and Cloudflare bindings
 
 ## Current Cloudflare resources
@@ -31,7 +35,6 @@ PetShip / Release Pets MVP stage 1: a no-OAuth pet/mascot image generator for Gi
 - R2 bucket: `petship-images`
 - R2 location: `WNAM`
 - R2 storage class: `Standard`
-- Remote D1 schema was applied via Cloudflare MCP/API because local Wrangler has no `CLOUDFLARE_API_TOKEN`
 
 ## Commands
 
@@ -47,17 +50,55 @@ pnpm deploy:web
 pnpm deploy:api
 ```
 
+## GitHub OAuth setup
+
+Local OAuth app values:
+
+```txt
+Homepage URL: http://localhost:5173
+Authorization callback URL: http://localhost:8787/api/auth/github/callback
+```
+
+Production callback should point at the deployed Worker/API host:
+
+```txt
+https://<api-host>/api/auth/github/callback
+```
+
+Use separate GitHub OAuth apps for local and production because OAuth apps have one callback URL.
+
+## Environment variables / secrets
+
+Non-secret vars in `worker/wrangler.toml` or Cloudflare dashboard:
+
+```txt
+PUBLIC_CDN_BASE
+APP_BASE_URL
+FRONTEND_BASE_URL
+GITHUB_CLIENT_ID
+```
+
+Secrets set with Wrangler/dashboard, not committed:
+
+```bash
+wrangler secret put GITHUB_CLIENT_SECRET --config worker/wrangler.toml
+wrangler secret put SESSION_SECRET --config worker/wrangler.toml
+```
+
 ## MVP constraints
 
-- Do not add GitHub OAuth/App/PAT integration in stage 1.
-- Keep frontend copy-paste Markdown flow.
-- Keep image uploads anonymous but rate-limited by hashed IP.
+- GitHub sign-in is required for new uploads.
+- OAuth currently requests `repo` scope to support public and private repo verification/pickers.
+- No automatic GitHub release body mutation yet; output remains copy-paste Markdown/HTML.
+- Keep image uploads rate-limited by hashed IP as a baseline guardrail.
 - API must validate browser-compressed images; never trust frontend compression alone.
 - Reject SVG and GIF.
 - Final upload size limit is `100_000` bytes.
 - One active image per `repo_id + release_tag`; replacement should only delete old R2 object after new upload succeeds.
+- GitHub access tokens are server-only in D1; token-at-rest encryption is a recommended hardening follow-up.
 
 ## Deployment notes
 
-- `PUBLIC_CDN_BASE` defaults to `https://cdn.petship.dev`; for Worker-served images, route that hostname/path to the Worker or update the var.
-- Frontend expects API endpoints at same origin under `/api/*`; configure Pages/Worker routing accordingly or add a Vite/local proxy during development.
+- `PUBLIC_CDN_BASE` defaults to `https://cdn.shipkitty.dev`; for Worker-served images, route that hostname/path to the Worker or update the var.
+- Frontend expects API endpoints at same origin under `/api/*`; Vite proxies locally and Pages/Worker routing must be configured in production.
+- Apply `worker/migrations/0002_github_oauth.sql` before deploying OAuth-enabled API code to production.

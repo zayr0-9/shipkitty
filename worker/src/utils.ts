@@ -4,6 +4,21 @@ export function json(data: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(data), { ...init, headers });
 }
 
+export function corsJson(request: Request, data: unknown, init: ResponseInit = {}) {
+  return json(data, { ...init, headers: withCorsHeaders(request, init.headers) });
+}
+
+export function withCorsHeaders(request: Request, headersInit?: HeadersInit) {
+  const headers = new Headers(headersInit);
+  const origin = request.headers.get('origin');
+  if (origin) {
+    headers.set('access-control-allow-origin', origin);
+    headers.set('access-control-allow-credentials', 'true');
+    headers.append('vary', 'Origin');
+  }
+  return headers;
+}
+
 export function error(message: string, status = 400) {
   return json({ error: message }, { status });
 }
