@@ -1,0 +1,32 @@
+{
+  "name": "petship-mvp",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "wrangler dev --config worker/wrangler.toml",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p worker/tsconfig.json",
+    "deploy:web": "pnpm build && wrangler pages deploy dist --project-name petship",
+    "deploy:api": "wrangler deploy --config worker/wrangler.toml",
+    "db:migrate:local": "wrangler d1 migrations apply petship-db --local --config worker/wrangler.toml",
+    "db:migrate:remote": "wrangler d1 migrations apply petship-db --remote --config worker/wrangler.toml"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tailwindcss": "^4.3.0",
+    "wrangler": "latest"
+  }
+}

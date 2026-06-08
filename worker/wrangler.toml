@@ -1,0 +1,16 @@
+name = "petship-api"
+main = "src/index.ts"
+compatibility_date = "2026-06-08"
+workers_dev = true
+
+[vars]
+PUBLIC_CDN_BASE = "https://cdn.petship.dev"
+
+[[r2_buckets]]
+binding = "PET_IMAGES"
+bucket_name = "petship-images"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "petship-db"
+database_id = "1775b58a-52b3-4ab0-9c27-b3040ac85991"
