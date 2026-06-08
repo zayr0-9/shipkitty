@@ -1,5 +1,17 @@
-import { FormEvent, useMemo, useState } from 'react';
-import { prepareImage, uploadImage, type UploadImageResponse } from './api';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  fetchGitHubReleases,
+  fetchGitHubRepos,
+  getSession,
+  logout,
+  prepareImage,
+  uploadImage,
+  verifyGitHubRepo,
+  type GitHubRelease,
+  type GitHubRepo,
+  type SessionUser,
+  type UploadImageResponse,
+} from './api';
 import { compressImage, type CompressedImage } from './image';
 
 type Status = 'idle' | 'compressing' | 'uploading' | 'done' | 'error';
@@ -34,7 +46,7 @@ function getPetCaption(pet: PetOption) {
   return `Release approved by ${pet.name} ${pet.emoji}`;
 }
 
-const exampleMarkdown = `<!-- petship:start -->\n### Release approved by Bobby 🐱\n\n![Bobby approved this release](https://cdn.petship.dev/r/karn/yggdrasil/v1.2.0/img_demo.webp)\n\n_Bobby, Chief Purr Officer_\n<!-- petship:end -->`;
+const exampleMarkdown = `<!-- petship:start -->\n### Release approved by Bobby 🐱\n\n![Bobby approved this release](https://cdn.shipkitty.dev/r/karn/yggdrasil/v1.2.0/img_demo.webp)\n\n_Bobby, Chief Purr Officer_\n<!-- petship:end -->`;
 
 const inputClass = 'w-full min-w-0 rounded-2xl border border-amber-200 bg-white/80 px-4 py-3 text-base text-slate-950 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20';
 const labelClass = 'flex min-w-0 flex-col gap-2 font-bold text-slate-700';
@@ -57,16 +69,39 @@ function App() {
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [repos, setRepos] = useState<GitHubRepo[]>([]);
+  const [releases, setReleases] = useState<GitHubRelease[]>([]);
+  const [repoStatus, setRepoStatus] = useState('Sign in to load repos or verify manual entries.');
 
   const selectedPet = useMemo(
     () => petOptions.find((pet) => pet.id === selectedPetId) ?? petOptions[0],
     [selectedPetId],
   );
 
-  const previewUrl = useMemo(() => {
-    if (!compressed) return '';
-    return URL.createObjectURL(compressed.blob);
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  useEffect(() => {
+    if (!compressed) {
+      setPreviewUrl('');
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(compressed.blob);
+    setPreviewUrl(nextPreviewUrl);
+    return () => URL.revokeObjectURL(nextPreviewUrl);
   }, [compressed]);
+
+  useEffect(() => {
+    getSession()
+      .then((user) => {
+        setSessionUser(user);
+        setRepoStatus(user ? 'Load your GitHub repos or verify the manual repo.' : 'Sign in to load repos or verify manual entries.');
+      })
+      .catch((error) => setMessage(error instanceof Error ? error.message : 'Could not load session.'))
+      .finally(() => setAuthLoading(false));
+  }, []);
 
   function handlePetChange(nextPetId: string) {
     const nextPet = petOptions.find((pet) => pet.id === nextPetId);
@@ -105,6 +140,12 @@ function App() {
     setCopied(false);
     setResult(null);
 
+    if (!sessionUser) {
+      setStatus('error');
+      setMessage('Sign in with GitHub before generating Markdown.');
+      return;
+    }
+
     if (!compressed || !file) {
       setStatus('error');
       setMessage('Choose an image before generating Markdown.');
@@ -137,8 +178,70 @@ function App() {
   }
 
   async function copyMarkdown(markdown: string) {
-    await navigator.clipboard.writeText(markdown);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopied(true);
+      setMessage('Markdown copied to clipboard.');
+    } catch {
+      setCopied(false);
+      setStatus('error');
+      setMessage('Could not copy Markdown. Select the snippet and copy it manually.');
+    }
+  }
+
+  async function handleLogin() {
+    const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+    window.location.href = `${apiBaseUrl}/api/auth/github/start?redirect=${encodeURIComponent('/')}`;
+  }
+
+  async function handleLogout() {
+    await logout();
+    setSessionUser(null);
+    setRepos([]);
+    setReleases([]);
+    setRepoStatus('Signed out. Sign in to verify GitHub repo access.');
+  }
+
+  async function loadRepos() {
+    try {
+      setRepoStatus('Loading GitHub repos...');
+      const nextRepos = await fetchGitHubRepos();
+      setRepos(nextRepos);
+      setRepoStatus(nextRepos.length ? 'Choose a repo or keep typing manually.' : 'No accessible repos returned by GitHub.');
+    } catch (error) {
+      setRepoStatus(error instanceof Error ? error.message : 'Could not load repos.');
+    }
+  }
+
+  async function handleRepoSelect(fullName: string) {
+    if (!fullName) return;
+    const selected = repos.find((item) => item.fullName === fullName);
+    if (!selected) return;
+    setOwner(selected.owner);
+    setRepo(selected.name);
+    setReleases([]);
+    setRepoStatus(`Selected ${selected.fullName}. Loading releases...`);
+    try {
+      const nextReleases = await fetchGitHubReleases(selected.owner, selected.name);
+      setReleases(nextReleases);
+      setRepoStatus(nextReleases.length ? 'Choose a release tag or type one manually.' : 'Repo verified. No releases found; type a tag manually.');
+    } catch (error) {
+      setRepoStatus(error instanceof Error ? error.message : 'Could not load releases.');
+    }
+  }
+
+  async function handleVerifyRepo() {
+    try {
+      setRepoStatus('Verifying GitHub repo access...');
+      const verified = await verifyGitHubRepo(owner, repo);
+      setOwner(verified.owner);
+      setRepo(verified.name);
+      const nextReleases = await fetchGitHubReleases(verified.owner, verified.name);
+      setReleases(nextReleases);
+      setRepoStatus(`Verified ${verified.fullName}. ${nextReleases.length ? 'Pick a release below.' : 'No releases found; type a tag manually.'}`);
+    } catch (error) {
+      setRepoStatus(error instanceof Error ? error.message : 'Could not verify repo.');
+    }
   }
 
   const markdown = result?.markdown ?? exampleMarkdown;
@@ -149,13 +252,26 @@ function App() {
       <div className="mx-auto w-full max-w-6xl">
         <section className="grid min-h-0 items-center gap-5 sm:gap-8 lg:min-h-[56vh] lg:grid-cols-[1.2fr_0.8fr]">
           <div>
-            <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.18em] text-amber-700 sm:mb-4 sm:text-base">PetShip MVP</p>
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-amber-700 sm:text-base">PetShip OAuth MVP</p>
+              {sessionUser ? (
+                <div className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-extrabold text-slate-700 ring-1 ring-amber-200">
+                  {sessionUser.avatarUrl && <img className="h-6 w-6 rounded-full" src={sessionUser.avatarUrl} alt="" />}
+                  <span>@{sessionUser.githubUsername}</span>
+                  <button className="text-amber-700 underline decoration-amber-300 underline-offset-4" type="button" onClick={handleLogout}>Logout</button>
+                </div>
+              ) : (
+                <button className={secondaryButtonClass} type="button" onClick={handleLogin} disabled={authLoading}>
+                  {authLoading ? 'Checking session...' : 'Sign in with GitHub'}
+                </button>
+              )}
+            </div>
             <h1 className="max-w-3xl text-[2.65rem] font-black leading-[0.95] tracking-[-0.06em] text-slate-950 sm:text-7xl sm:tracking-[-0.08em] lg:text-8xl">
               Add a pet mascot to your GitHub release notes.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:mt-6 sm:text-xl sm:leading-8">
-              Upload a compressed pet or mascot image, link it to a repo release, and copy a permanent
-              Markdown snippet. No GitHub OAuth needed for stage 1.
+              Sign in with GitHub, verify access to a public or private repo, upload a compressed pet image,
+              and copy a permanent Markdown snippet into your release notes.
             </p>
             <div className="mt-6 grid gap-3 sm:mt-8 sm:flex sm:flex-wrap">
               <a href="#generator" className={primaryButtonClass}>Generate Markdown</a>
@@ -236,7 +352,27 @@ function App() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4">
+              <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end">
+                <button className={secondaryButtonClass} type="button" onClick={loadRepos} disabled={!sessionUser}>
+                  Load my repos
+                </button>
+                <label className={`${labelClass} flex-1`}>
+                  Repo picker
+                  <select className={inputClass} value="" onChange={(event) => handleRepoSelect(event.target.value)} disabled={!repos.length}>
+                    <option value="">Choose from GitHub...</option>
+                    {repos.map((item) => (
+                      <option key={item.id} value={item.fullName}>
+                        {item.fullName}{item.private ? ' · private' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p className="mt-3 text-sm font-bold text-amber-900">{repoStatus}</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
               <label className={labelClass}>
                 GitHub owner
                 <input className={inputClass} value={owner} onChange={(event) => setOwner(event.target.value)} required pattern="[A-Za-z0-9_.\\-]+" />
@@ -245,12 +381,29 @@ function App() {
                 Repo name
                 <input className={inputClass} value={repo} onChange={(event) => setRepo(event.target.value)} required pattern="[A-Za-z0-9_.\\-]+" />
               </label>
+              <button className={secondaryButtonClass} type="button" onClick={handleVerifyRepo} disabled={!sessionUser}>
+                Verify repo
+              </button>
             </div>
 
             <label className={labelClass}>
               Release tag
               <input className={inputClass} value={releaseTag} onChange={(event) => setReleaseTag(event.target.value)} required placeholder="v1.2.0" />
             </label>
+
+            {releases.length > 0 && (
+              <label className={labelClass}>
+                Release picker
+                <select className={inputClass} value="" onChange={(event) => event.target.value && setReleaseTag(event.target.value)}>
+                  <option value="">Choose a GitHub release...</option>
+                  {releases.map((release) => (
+                    <option key={release.id} value={release.tagName}>
+                      {release.tagName}{release.name ? ` · ${release.name}` : ''}{release.draft ? ' · draft' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className={labelClass}>
@@ -279,8 +432,8 @@ function App() {
 
             <p className={`min-h-6 ${statusClass}`}>{message || 'Images are resized client-side to WebP under 100 KB.'}</p>
 
-            <button className={`${primaryButtonClass} w-full sm:w-auto`} type="submit" disabled={status === 'compressing' || status === 'uploading'}>
-              {status === 'uploading' ? 'Uploading...' : 'Generate Markdown'}
+            <button className={`${primaryButtonClass} w-full sm:w-auto`} type="submit" disabled={!sessionUser || status === 'compressing' || status === 'uploading'}>
+              {!sessionUser ? 'Sign in first' : status === 'uploading' ? 'Uploading...' : 'Generate Markdown'}
             </button>
           </form>
 

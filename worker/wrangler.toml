@@ -1,16 +1,48 @@
-name = "petship-api"
+name = "shipkitty-api"
 main = "src/index.ts"
 compatibility_date = "2026-06-08"
 workers_dev = true
 
+# Local/default values used by `pnpm dev:api`.
 [vars]
-PUBLIC_CDN_BASE = "https://cdn.petship.dev"
+PUBLIC_CDN_BASE = "http://localhost:8787"
+APP_BASE_URL = "http://localhost:8787"
+FRONTEND_BASE_URL = "http://localhost:5173"
+GITHUB_CLIENT_ID = "replace-with-local-github-oauth-client-id"
 
 [[r2_buckets]]
 binding = "PET_IMAGES"
 bucket_name = "petship-images"
 
 [[d1_databases]]
+binding = "DB"
+database_name = "petship-db"
+database_id = "1775b58a-52b3-4ab0-9c27-b3040ac85991"
+
+# Production values used by `pnpm deploy:api`.
+[env.production]
+name = "shipkitty-api"
+workers_dev = false
+
+[[env.production.routes]]
+pattern = "api.shipkitty.dev"
+custom_domain = true
+
+[[env.production.routes]]
+pattern = "cdn.shipkitty.dev"
+custom_domain = true
+
+[env.production.vars]
+PUBLIC_CDN_BASE = "https://cdn.shipkitty.dev"
+APP_BASE_URL = "https://api.shipkitty.dev"
+FRONTEND_BASE_URL = "https://shipkitty.dev"
+GITHUB_CLIENT_ID = "Ov23lichoRk8z7LR4zeD"
+
+[[env.production.r2_buckets]]
+binding = "PET_IMAGES"
+bucket_name = "petship-images"
+
+[[env.production.d1_databases]]
 binding = "DB"
 database_name = "petship-db"
 database_id = "1775b58a-52b3-4ab0-9c27-b3040ac85991"

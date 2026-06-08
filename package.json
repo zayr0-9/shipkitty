@@ -1,5 +1,5 @@
 {
-  "name": "petship-mvp",
+  "name": "shipkitty-mvp",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -7,26 +7,29 @@
     "dev": "vite",
     "dev:api": "wrangler dev --config worker/wrangler.toml",
     "build": "vite build",
+    "build:prod": "VITE_API_BASE_URL=https://api.shipkitty.dev vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.app.json && tsc -p worker/tsconfig.json",
-    "deploy:web": "pnpm build && wrangler pages deploy dist --project-name petship",
-    "deploy:api": "wrangler deploy --config worker/wrangler.toml",
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p worker/tsconfig.json && tsc -p tsconfig.node.json",
+    "test": "vitest run",
+    "deploy:web": "pnpm build:prod && wrangler pages deploy dist --project-name shipkitty --branch github-oauth-flow",
+    "deploy:api": "wrangler deploy --env production --config worker/wrangler.toml",
     "db:migrate:local": "wrangler d1 migrations apply petship-db --local --config worker/wrangler.toml",
     "db:migrate:remote": "wrangler d1 migrations apply petship-db --remote --config worker/wrangler.toml"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "typescript": "latest",
-    "vite": "latest"
+    "@vitejs/plugin-react": "6.0.2",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "typescript": "6.0.3",
+    "vite": "8.0.16"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "latest",
-    "@tailwindcss/vite": "^4.3.0",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "tailwindcss": "^4.3.0",
-    "wrangler": "latest"
+    "@cloudflare/workers-types": "4.20260608.1",
+    "@tailwindcss/vite": "4.3.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "tailwindcss": "4.3.0",
+    "vitest": "4.1.8",
+    "wrangler": "4.98.0"
   }
 }
