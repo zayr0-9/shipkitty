@@ -127,18 +127,18 @@ export function ImageCropEditor({ file, onCancel, onApply }: ImageCropEditorProp
   const previewStyle = getPreviewStyle(crop, imageSize, imageUrl);
 
   return (
-    <div className="grid gap-4 rounded-3xl border border-amber-200 bg-amber-50/70 p-4">
+    <div className="grid gap-4 rounded-3xl border border-amber-200 bg-amber-50/70 p-4 dark:border-neutral-700 dark:bg-neutral-900/80">
       <div>
-        <h3 className="text-lg font-black text-slate-950">Crop image</h3>
-        <p className="text-sm font-bold text-slate-600">Drag the square to pan it. Drag a corner to resize, then fine-tune size with the slider.</p>
+        <h3 className="text-lg font-black text-neutral-950 dark:text-neutral-50">Crop image</h3>
+        <p className="text-sm font-bold text-neutral-600 dark:text-neutral-300">Drag the square to pan it. Drag a corner to resize, then fine-tune size with the slider.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-[1fr_8rem] sm:items-start">
-        <div className="relative touch-none overflow-hidden rounded-2xl bg-white" onPointerMove={handleCropPointerMove} onPointerUp={stopCropPointer} onPointerCancel={stopCropPointer}>
+        <div className="relative touch-none overflow-hidden rounded-2xl bg-white dark:bg-neutral-950" onPointerMove={handleCropPointerMove} onPointerUp={stopCropPointer} onPointerCancel={stopCropPointer}>
           {imageUrl ? (
             <img ref={imageRef} className="max-h-72 w-full object-contain select-none" src={imageUrl} alt="Selected crop source" draggable={false} onLoad={handleImageLoad} onError={handleImageError} />
           ) : (
-            <div className="grid min-h-56 place-items-center p-4 text-center font-bold text-amber-800">Loading image...</div>
+            <div className="grid min-h-56 place-items-center p-4 text-center font-bold text-amber-800 dark:text-neutral-300">Loading image...</div>
           )}
           {!!crop.size && !!displayRect.width && (
             <div className="absolute cursor-move border-2 border-white shadow-[0_0_0_9999px_rgba(15,23,42,0.45)] ring-2 ring-amber-400" style={cropBoxStyle} onPointerDown={startPan}>
@@ -155,19 +155,19 @@ export function ImageCropEditor({ file, onCancel, onApply }: ImageCropEditorProp
           )}
         </div>
         <div>
-          <p className="mb-2 text-sm font-extrabold text-slate-700">Square crop</p>
-          <div className="aspect-square w-full rounded-2xl border border-amber-200 bg-white bg-no-repeat shadow-inner" style={previewStyle} />
+          <p className="mb-2 text-sm font-extrabold text-neutral-700 dark:text-neutral-100">Square crop</p>
+          <div className="aspect-square w-full rounded-2xl border border-amber-200 bg-white bg-no-repeat shadow-inner dark:border-neutral-700 dark:bg-neutral-950" style={previewStyle} />
         </div>
       </div>
 
-      <label className="grid gap-2 text-sm font-extrabold text-slate-700">
+      <label className="grid gap-2 text-sm font-extrabold text-neutral-700 dark:text-neutral-100">
         Crop size
         <input type="range" min={Math.min(MIN_CROP_SIZE, maxCropSize)} max={maxCropSize} value={crop.size || MIN_CROP_SIZE} disabled={!crop.size} onChange={(event) => setCrop((current) => resizeCropFromCenter(current, imageSize, Number(event.target.value)))} />
       </label>
 
       <div className="grid gap-3 sm:flex sm:justify-end">
-        <button className={`${buttonClass} bg-white text-amber-950 hover:bg-amber-100`} type="button" onClick={onCancel}>Cancel</button>
-        <button className={`${buttonClass} bg-slate-950 text-white hover:bg-slate-800`} type="button" onClick={() => onApply(crop)} disabled={!crop.size}>Use this crop</button>
+        <button className={`${buttonClass} bg-white text-amber-950 hover:bg-amber-100 dark:bg-neutral-800 dark:text-neutral-100 dark:ring-1 dark:ring-neutral-700 dark:hover:bg-neutral-700`} type="button" onClick={onCancel}>Cancel</button>
+        <button className={`${buttonClass} bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-200`} type="button" onClick={() => onApply(crop)} disabled={!crop.size}>Use this crop</button>
       </div>
     </div>
   );

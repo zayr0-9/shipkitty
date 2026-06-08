@@ -64,34 +64,35 @@ function getPetCaption(pet: PetOption) {
 const exampleMarkdown = `<!-- shipkitty:start -->\n### Release approved by Bobby 🐱\n\n<img\n    src="https://cdn.shipkitty.dev/r/karn/yggdrasil/v1.2.0/img_demo.webp"\n    alt="Bobby approved this release"\n    width="300"\n  />\n_Bobby, Chief Purr Officer_\n<!-- shipkitty:end -->`;
 
 const inputClass =
-  "w-full min-w-0 rounded-2xl border border-amber-200 bg-white/80 px-4 py-3 text-base text-slate-950 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20";
-const labelClass = "flex min-w-0 flex-col gap-2 font-bold text-slate-700";
+  "w-full min-w-0 rounded-2xl border border-amber-200 bg-white/80 px-4 py-3 text-base text-neutral-950 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 dark:border-neutral-700 dark:bg-neutral-900/80 dark:text-neutral-50 dark:placeholder:text-neutral-500 dark:focus:border-neutral-400 dark:focus:ring-neutral-400/20";
+const labelClass =
+  "flex min-w-0 flex-col gap-2 font-bold text-neutral-700 dark:text-neutral-100";
 const cardClass =
-  "min-w-0 rounded-[1.5rem] border border-amber-200 bg-white/85 p-4 shadow-2xl shadow-amber-900/10 backdrop-blur sm:rounded-[1.75rem] sm:p-7";
+  "min-w-0 rounded-[1.5rem] border border-amber-200 bg-white/85 p-4 shadow-2xl shadow-amber-900/10 backdrop-blur sm:rounded-[1.75rem] sm:p-7 dark:border-neutral-700 dark:bg-neutral-900/85 dark:shadow-black/30";
 const primaryButtonClass =
-  "inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-center font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-12 items-center justify-center rounded-full bg-neutral-950 px-5 py-3 text-center font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-200";
 const secondaryButtonClass =
-  "inline-flex min-h-12 items-center justify-center rounded-full bg-amber-100 px-5 py-3 text-center font-extrabold text-amber-950 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-12 items-center justify-center rounded-full bg-amber-100 px-5 py-3 text-center font-extrabold text-amber-950 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-neutral-800 dark:text-neutral-100 dark:ring-1 dark:ring-neutral-700 dark:hover:bg-neutral-700";
 
 function ExampleMarkdownPreview() {
   return (
     <>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-inner sm:rounded-3xl">
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white shadow-inner dark:bg-neutral-950 sm:rounded-3xl">
         <div className="p-4 sm:p-5">
-          <h3 className="text-xl font-black text-slate-950">
+          <h3 className="text-xl font-black text-neutral-950 dark:text-neutral-50">
             Release approved by Bobby 🐱
           </h3>
           <img
-            className="mt-4 aspect-square w-full rounded-2xl bg-amber-100 object-cover"
+            className="mt-4 aspect-square w-full rounded-2xl bg-amber-100 dark:bg-neutral-800 object-cover"
             src="/bobby.jpg"
             alt="Bobby approved this release"
           />
-          <p className="mt-4 italic text-slate-600">
+          <p className="mt-4 italic text-neutral-600 dark:text-neutral-300">
             Bobby, Chief Purr Officer
           </p>
         </div>
       </div>
-      <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+      <p className="rounded-2xl bg-amber-50 dark:bg-neutral-900 px-4 py-3 text-sm font-bold text-amber-900 dark:text-neutral-100">
         Upload your own pet image to preview it here.
       </p>
     </>
@@ -388,22 +389,22 @@ function App() {
   const markdown = result?.markdown ?? exampleMarkdown;
   const statusClass =
     status === "error"
-      ? "text-red-700"
+      ? "text-red-700 dark:text-red-300"
       : status === "done"
-        ? "text-emerald-700"
-        : "text-slate-500";
+        ? "text-emerald-700 dark:text-emerald-300"
+        : "text-neutral-500 dark:text-neutral-400";
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#fffaf2] px-3 py-5 font-sans text-slate-800 sm:px-4 sm:py-8 md:py-12">
+    <main className="min-h-screen overflow-x-hidden bg-[#fffaf2] px-3 py-5 font-sans text-neutral-800 transition-colors sm:px-4 sm:py-8 md:py-12 dark:bg-neutral-950 dark:text-neutral-100">
       <div className="mx-auto w-full max-w-6xl">
         <section className="grid min-h-0 items-center gap-5 sm:gap-8 lg:min-h-[56vh] lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-amber-700 sm:text-base">
+              <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-amber-700 dark:text-neutral-300 sm:text-base">
                 ShipKitty
               </p>
               {sessionUser ? (
-                <div className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-extrabold text-slate-700 ring-1 ring-amber-200">
+                <div className="flex items-center gap-2 rounded-full bg-white/80 dark:bg-neutral-900/80 px-3 py-2 text-sm font-extrabold text-neutral-700 dark:text-neutral-200 ring-1 ring-amber-200 dark:ring-neutral-700">
                   {sessionUser.avatarUrl && (
                     <img
                       className="h-6 w-6 rounded-full"
@@ -413,7 +414,7 @@ function App() {
                   )}
                   <span>@{sessionUser.githubUsername}</span>
                   <button
-                    className="text-amber-700 underline decoration-amber-300 underline-offset-4"
+                    className="text-amber-700 dark:text-neutral-300 underline decoration-amber-300 underline-offset-4"
                     type="button"
                     onClick={handleLogout}
                   >
@@ -431,10 +432,10 @@ function App() {
                 </button>
               )}
             </div>
-            <h1 className="max-w-3xl text-[2.65rem] font-black leading-[0.95] tracking-[-0.06em] text-slate-950 sm:text-7xl sm:tracking-[-0.08em] lg:text-8xl">
+            <h1 className="max-w-3xl text-[2.65rem] font-black leading-[0.95] tracking-[-0.06em] text-neutral-950 dark:text-neutral-50 sm:text-7xl sm:tracking-[-0.08em] lg:text-8xl">
               Add a pet mascot to your GitHub release notes.
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 sm:mt-6 sm:text-xl sm:leading-8">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600 dark:text-neutral-300 sm:mt-6 sm:text-xl sm:leading-8">
               Sign in with GitHub, verify access to a public or private repo,
               upload a compressed pet image, and copy a permanent Markdown
               snippet into your release notes.
@@ -450,7 +451,7 @@ function App() {
           </div>
 
           <img
-            className="mx-auto aspect-square w-full max-w-md rounded-full bg-amber-100 object-contain p-4 shadow-2xl shadow-amber-900/10"
+            className="mx-auto aspect-square w-full max-w-md rounded-full bg-amber-100 dark:bg-neutral-800 object-contain p-4 shadow-2xl shadow-amber-900/10"
             id="example"
             src="/shipkittylogo.png"
             alt="ShipKitty logo"
@@ -478,7 +479,7 @@ function App() {
               className="w-full"
             />
 
-            <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4">
+            <div className="rounded-3xl border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-700 dark:bg-neutral-900/80">
               <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end">
                 <button
                   className={secondaryButtonClass}
@@ -515,7 +516,7 @@ function App() {
                   className="flex-1"
                 />
               </div>
-              <p className="mt-3 text-sm font-bold text-amber-900">
+              <p className="mt-3 text-sm font-bold text-neutral-700 dark:text-neutral-100">
                 {repoStatus}
               </p>
             </div>
@@ -644,9 +645,9 @@ function App() {
               />
             </label>
 
-            <div className="flex flex-col gap-2 font-bold text-slate-700">
+            <div className="flex flex-col gap-2 font-bold text-neutral-700 dark:text-neutral-200">
               <span>Upload pet image</span>
-              <label className="flex cursor-pointer flex-col gap-3 rounded-3xl border border-dashed border-amber-300 bg-amber-50 p-3 transition hover:-translate-y-0.5 hover:border-amber-500 hover:bg-amber-100 focus-within:ring-4 focus-within:ring-amber-500/20 sm:flex-row sm:items-center">
+              <label className="flex cursor-pointer flex-col gap-3 rounded-3xl border border-dashed border-neutral-300 bg-neutral-50 p-3 transition hover:-translate-y-0.5 hover:border-neutral-500 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 focus-within:ring-4 focus-within:ring-neutral-500/20 dark:focus-within:ring-neutral-400/20 sm:flex-row sm:items-center">
                 <input
                   className="sr-only"
                   type="file"
@@ -655,10 +656,10 @@ function App() {
                     handleFileChange(event.target.files?.[0])
                   }
                 />
-                <span className="rounded-full bg-slate-950 px-4 py-3 text-center font-extrabold text-white sm:shrink-0">
+                <span className="rounded-full bg-neutral-950 px-4 py-3 text-center font-extrabold text-white sm:shrink-0">
                   Choose pet image
                 </span>
-                <span className="min-w-0 break-words font-bold text-amber-950 sm:truncate">
+                <span className="min-w-0 break-words font-bold text-neutral-800 dark:text-neutral-50 sm:truncate">
                   {file?.name || "PNG, JPEG, or WebP"}
                 </span>
               </label>
@@ -687,7 +688,7 @@ function App() {
           </form>
 
           <aside className={`${cardClass} flex flex-col gap-4 sm:gap-5`}>
-            <h2 className="text-xl font-black text-slate-950 sm:text-2xl">
+            <h2 className="text-xl font-black text-neutral-950 dark:text-neutral-50 sm:text-2xl">
               Preview
             </h2>
             {cropFile ? (
@@ -698,7 +699,7 @@ function App() {
               />
             ) : previewUrl ? (
               <img
-                className="aspect-square w-full rounded-3xl bg-amber-100 object-cover"
+                className="aspect-square w-full rounded-3xl bg-amber-100 dark:bg-neutral-800 object-cover"
                 src={previewUrl}
                 alt="Compressed pet preview"
               />
@@ -706,14 +707,14 @@ function App() {
               <ExampleMarkdownPreview />
             )}
             {compressed && !cropFile && (
-              <p className="text-slate-600">
+              <p className="text-neutral-600 dark:text-neutral-300">
                 {formatBytes(compressed.blob.size)} · {compressed.width}×
                 {compressed.height}
               </p>
             )}
             {result && (
               <a
-                className="font-extrabold text-amber-700 underline decoration-amber-300 underline-offset-4"
+                className="font-extrabold text-amber-700 dark:text-neutral-300 underline decoration-amber-300 underline-offset-4"
                 href={result.publicUrl}
                 target="_blank"
                 rel="noreferrer"
@@ -728,7 +729,7 @@ function App() {
           className={`${cardClass} mt-5 flex flex-col gap-4 sm:mt-6 sm:gap-5`}
         >
           <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
-            <h2 className="text-xl font-black text-slate-950 sm:text-2xl">
+            <h2 className="text-xl font-black text-neutral-950 dark:text-neutral-50 sm:text-2xl">
               GitHub Markdown
             </h2>
             <div className="grid gap-2 sm:flex sm:flex-wrap">
@@ -757,8 +758,8 @@ function App() {
             <p
               className={
                 releaseAppendStatus === "error"
-                  ? "font-bold text-red-700"
-                  : "font-bold text-emerald-700"
+                  ? "font-bold text-red-700 dark:text-red-300"
+                  : "font-bold text-emerald-700 dark:text-emerald-300"
               }
             >
               {releaseAppendMessage}
@@ -777,18 +778,31 @@ function App() {
               )}
             </p>
           )}
-          <pre className="max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-slate-50 sm:break-words sm:rounded-3xl sm:p-5 sm:text-sm sm:leading-6">
+          <pre className="max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-2xl bg-neutral-950 p-4 text-xs leading-5 text-neutral-50 sm:break-words sm:rounded-3xl sm:p-5 sm:text-sm sm:leading-6">
             {markdown}
           </pre>
           {result?.html && (
-            <details className="font-bold text-slate-800">
+            <details className="font-bold text-neutral-800 dark:text-neutral-100">
               <summary className="cursor-pointer">Compact HTML version</summary>
-              <pre className="mt-4 max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-slate-50 sm:break-words sm:rounded-3xl sm:p-5 sm:text-sm sm:leading-6">
+              <pre className="mt-4 max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-2xl bg-neutral-950 p-4 text-xs leading-5 text-neutral-50 sm:break-words sm:rounded-3xl sm:p-5 sm:text-sm sm:leading-6">
                 {result.html}
               </pre>
             </details>
           )}
         </section>
+
+        <footer className="mt-6 flex flex-col gap-3 rounded-[1.5rem] border border-amber-200 dark:border-neutral-700 bg-white/70 dark:bg-neutral-900/70 px-5 py-5 text-sm font-bold text-neutral-600 dark:text-neutral-300 shadow-xl shadow-amber-900/5 backdrop-blur sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:rounded-[1.75rem] sm:px-7">
+          <span>Made with paws for GitHub release notes.</span>
+          <a
+            className="inline-flex items-center gap-2 text-amber-700 dark:text-neutral-300 underline decoration-amber-300 underline-offset-4 transition hover:-translate-y-0.5 hover:text-amber-900 dark:hover:text-neutral-100"
+            href="https://github.com/zayr0-9/shipkitty"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View ShipKitty on GitHub
+            <span aria-hidden="true">↗</span>
+          </a>
+        </footer>
       </div>
     </main>
   );
