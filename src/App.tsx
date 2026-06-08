@@ -69,6 +69,27 @@ const cardClass = 'min-w-0 rounded-[1.5rem] border border-amber-200 bg-white/85 
 const primaryButtonClass = 'inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-center font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60';
 const secondaryButtonClass = 'inline-flex min-h-12 items-center justify-center rounded-full bg-amber-100 px-5 py-3 text-center font-extrabold text-amber-950 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60';
 
+function ExampleMarkdownPreview() {
+  return (
+    <>
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-inner sm:rounded-3xl">
+        <div className="p-4 sm:p-5">
+          <h3 className="text-xl font-black text-slate-950">Release approved by Bobby 🐱</h3>
+          <img
+            className="mt-4 aspect-square w-full rounded-2xl bg-amber-100 object-cover"
+            src="/bobby.jpg"
+            alt="Bobby approved this release"
+          />
+          <p className="mt-4 italic text-slate-600">Bobby, Chief Purr Officer</p>
+        </div>
+      </div>
+      <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+        Upload your own pet image to preview it here.
+      </p>
+    </>
+  );
+}
+
 function App() {
   const [selectedRepoId, setSelectedRepoId] = useState('');
   const [owner, setOwner] = useState('');
@@ -343,23 +364,12 @@ function App() {
             </div>
           </div>
 
-          <div className={`${cardClass} w-full overflow-hidden`} id="example">
-            <span className="font-extrabold uppercase tracking-[0.18em] text-amber-700">Example output</span>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-inner sm:rounded-3xl">
-              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-500">
-                Markdown preview
-              </div>
-              <div className="p-4 sm:p-5">
-                <h3 className="text-xl font-black text-slate-950">Release approved by Bobby 🐱</h3>
-                <img
-                  className="mt-4 aspect-square w-full rounded-2xl bg-amber-100 object-cover"
-                  src="/bobby.jpg"
-                  alt="Bobby approved this release"
-                />
-                <p className="mt-4 italic text-slate-600">Bobby, Chief Purr Officer</p>
-              </div>
-            </div>
-          </div>
+          <img
+            className="mx-auto aspect-square w-full max-w-md rounded-full bg-amber-100 object-contain p-4 shadow-2xl shadow-amber-900/10"
+            id="example"
+            src="/shipkittylogo.png"
+            alt="ShipKitty logo"
+          />
         </section>
 
         <section className="mt-6 grid gap-5 sm:mt-8 sm:gap-6 lg:grid-cols-[1.1fr_0.9fr]" id="generator">
@@ -480,9 +490,7 @@ function App() {
             ) : previewUrl ? (
               <img className="aspect-square w-full rounded-3xl bg-amber-100 object-cover" src={previewUrl} alt="Compressed pet preview" />
             ) : (
-              <div className="grid min-h-56 place-items-center rounded-2xl border-2 border-dashed border-amber-200 p-4 text-center font-bold text-amber-800 sm:min-h-80 sm:rounded-3xl">
-                Choose an image to preview the compressed WebP.
-              </div>
+              <ExampleMarkdownPreview />
             )}
             {compressed && !cropFile && <p className="text-slate-600">{formatBytes(compressed.blob.size)} · {compressed.width}×{compressed.height}</p>}
             {result && <a className="font-extrabold text-amber-700 underline decoration-amber-300 underline-offset-4" href={result.publicUrl} target="_blank" rel="noreferrer">Open public image</a>}
