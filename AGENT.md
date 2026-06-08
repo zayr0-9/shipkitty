@@ -2,7 +2,7 @@
 
 ## Project
 
-PetShip / Release Pets MVP stage 2: a GitHub OAuth-authenticated pet/mascot image generator for GitHub release notes.
+ShipKitty: a GitHub OAuth-authenticated pet/mascot image generator for GitHub release notes.
 
 ## Stack
 
@@ -85,9 +85,9 @@ wrangler secret put GITHUB_CLIENT_SECRET --config worker/wrangler.toml
 wrangler secret put SESSION_SECRET --config worker/wrangler.toml
 ```
 
-## MVP constraints
+## Current constraints
 
-- GitHub sign-in is required for new uploads.
+- GitHub sign-in is required for new uploads in the OAuth-enabled flow.
 - OAuth currently requests `repo` scope to support public and private repo verification/pickers.
 - No automatic GitHub release body mutation yet; output remains copy-paste Markdown/HTML.
 - Keep image uploads rate-limited by hashed IP as a baseline guardrail.

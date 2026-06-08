@@ -77,7 +77,7 @@ export default {
       }
 
       if (url.pathname === '/api/health') {
-        return json({ ok: true, service: 'petship-api' });
+        return json({ ok: true, service: 'shipkitty-api' });
       }
 
       return notFound();

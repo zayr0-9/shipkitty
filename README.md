@@ -1,4 +1,4 @@
-# PetShip OAuth MVP
+# ShipKitty
 
 A tiny GitHub-authenticated service for adding pet/mascot approval images to GitHub release notes.
 
@@ -10,7 +10,7 @@ A tiny GitHub-authenticated service for adding pet/mascot approval images to Git
 - Storage: Cloudflare R2 bucket (`petship-images`)
 - Metadata: Cloudflare D1 database (`petship-db`)
 
-## MVP flow
+## Flow
 
 1. User signs in with GitHub OAuth.
 2. User loads GitHub repos/releases or manually enters owner/repo/tag.

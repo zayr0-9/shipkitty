@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import {
   fetchGitHubReleases,
   fetchGitHubRepos,
@@ -12,6 +12,7 @@ import {
   type SessionUser,
   type UploadImageResponse,
 } from './api';
+import { CustomList } from './components/CustomList';
 import { compressImage, type CompressedImage } from './image';
 
 type Status = 'idle' | 'compressing' | 'uploading' | 'done' | 'error';
@@ -21,6 +22,14 @@ type PetOption = {
   name: string;
   title: string;
   emoji: string;
+};
+
+type ProjectOption = {
+  id: string;
+  owner: string;
+  repo: string;
+  description: string;
+  icon: string;
 };
 
 const petOptions: PetOption[] = [
@@ -42,21 +51,28 @@ const petOptions: PetOption[] = [
   { id: 'poppy', name: 'Poppy', title: 'Product Panda', emoji: '🐼' },
 ];
 
+const projectOptions: ProjectOption[] = [
+  { id: 'karn/yggdrasil', owner: 'karn', repo: 'yggdrasil', description: 'Release notes demo project', icon: '🚀' },
+  { id: 'karn/shipkitty', owner: 'karn', repo: 'shipkitty', description: 'ShipKitty app releases', icon: '🐾' },
+  { id: 'octocat/hello-world', owner: 'octocat', repo: 'hello-world', description: 'Example GitHub repository', icon: '👋' },
+];
+
 function getPetCaption(pet: PetOption) {
   return `Release approved by ${pet.name} ${pet.emoji}`;
 }
 
-const exampleMarkdown = `<!-- petship:start -->\n### Release approved by Bobby 🐱\n\n![Bobby approved this release](https://cdn.shipkitty.dev/r/karn/yggdrasil/v1.2.0/img_demo.webp)\n\n_Bobby, Chief Purr Officer_\n<!-- petship:end -->`;
+const exampleMarkdown = `<!-- shipkitty:start -->\n### Release approved by Bobby 🐱\n\n![Bobby approved this release](https://cdn.shipkitty.dev/r/karn/yggdrasil/v1.2.0/img_demo.webp)\n\n_Bobby, Chief Purr Officer_\n<!-- shipkitty:end -->`;
 
 const inputClass = 'w-full min-w-0 rounded-2xl border border-amber-200 bg-white/80 px-4 py-3 text-base text-slate-950 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20';
 const labelClass = 'flex min-w-0 flex-col gap-2 font-bold text-slate-700';
 const cardClass = 'min-w-0 rounded-[1.5rem] border border-amber-200 bg-white/85 p-4 shadow-2xl shadow-amber-900/10 backdrop-blur sm:rounded-[1.75rem] sm:p-7';
 const primaryButtonClass = 'inline-flex min-h-12 items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-center font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60';
-const secondaryButtonClass = 'inline-flex min-h-12 items-center justify-center rounded-full bg-amber-100 px-5 py-3 text-center font-extrabold text-amber-950 transition hover:-translate-y-0.5 hover:bg-amber-200';
+const secondaryButtonClass = 'inline-flex min-h-12 items-center justify-center rounded-full bg-amber-100 px-5 py-3 text-center font-extrabold text-amber-950 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60';
 
 function App() {
-  const [owner, setOwner] = useState('karn');
-  const [repo, setRepo] = useState('yggdrasil');
+  const [selectedProjectId, setSelectedProjectId] = useState(projectOptions[0].id);
+  const [owner, setOwner] = useState(projectOptions[0].owner);
+  const [repo, setRepo] = useState(projectOptions[0].repo);
   const [releaseTag, setReleaseTag] = useState('v1.2.0');
   const [selectedPetId, setSelectedPetId] = useState(petOptions[0].id);
   const [petName, setPetName] = useState(petOptions[0].name);
@@ -68,18 +84,11 @@ function App() {
   const [status, setStatus] = useState<Status>('idle');
   const [message, setMessage] = useState('');
   const [copied, setCopied] = useState(false);
-  const [isPetMenuOpen, setIsPetMenuOpen] = useState(false);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [releases, setReleases] = useState<GitHubRelease[]>([]);
   const [repoStatus, setRepoStatus] = useState('Sign in to load repos or verify manual entries.');
-
-  const selectedPet = useMemo(
-    () => petOptions.find((pet) => pet.id === selectedPetId) ?? petOptions[0],
-    [selectedPetId],
-  );
-
   const [previewUrl, setPreviewUrl] = useState('');
 
   useEffect(() => {
@@ -111,7 +120,15 @@ function App() {
     setPetName(nextPet.name);
     setPetTitle(nextPet.title);
     setCaption(getPetCaption(nextPet));
-    setIsPetMenuOpen(false);
+  }
+
+  function handleProjectChange(nextProjectId: string) {
+    const nextProject = projectOptions.find((project) => project.id === nextProjectId);
+    if (!nextProject) return;
+
+    setSelectedProjectId(nextProject.id);
+    setOwner(nextProject.owner);
+    setRepo(nextProject.repo);
   }
 
   async function handleFileChange(nextFile: File | undefined) {
@@ -189,7 +206,7 @@ function App() {
     }
   }
 
-  async function handleLogin() {
+  function handleLogin() {
     const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
     window.location.href = `${apiBaseUrl}/api/auth/github/start?redirect=${encodeURIComponent('/')}`;
   }
@@ -217,6 +234,7 @@ function App() {
     if (!fullName) return;
     const selected = repos.find((item) => item.fullName === fullName);
     if (!selected) return;
+    setSelectedProjectId('');
     setOwner(selected.owner);
     setRepo(selected.name);
     setReleases([]);
@@ -234,6 +252,7 @@ function App() {
     try {
       setRepoStatus('Verifying GitHub repo access...');
       const verified = await verifyGitHubRepo(owner, repo);
+      setSelectedProjectId('');
       setOwner(verified.owner);
       setRepo(verified.name);
       const nextReleases = await fetchGitHubReleases(verified.owner, verified.name);
@@ -253,7 +272,7 @@ function App() {
         <section className="grid min-h-0 items-center gap-5 sm:gap-8 lg:min-h-[56vh] lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-amber-700 sm:text-base">PetShip OAuth MVP</p>
+              <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-amber-700 sm:text-base">ShipKitty</p>
               {sessionUser ? (
                 <div className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-sm font-extrabold text-slate-700 ring-1 ring-amber-200">
                   {sessionUser.avatarUrl && <img className="h-6 w-6 rounded-full" src={sessionUser.avatarUrl} alt="" />}
@@ -302,55 +321,31 @@ function App() {
           <form className={`${cardClass} flex flex-col gap-5`} onSubmit={handleSubmit}>
             <div className="grid gap-3 sm:flex sm:items-start sm:justify-between">
               <h2 className="text-xl font-black text-slate-950 sm:text-2xl">New release pet</h2>
-              <div className="relative flex min-w-0 flex-col gap-2 font-bold text-slate-700 sm:ml-auto sm:w-72">
-                <span>Pet selector</span>
-                <button
-                  className="group flex min-h-14 w-full items-center gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-white to-amber-50 px-3 py-2 text-left shadow-inner shadow-amber-900/5 outline-none transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-900/10 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20"
-                  type="button"
-                  aria-haspopup="listbox"
-                  aria-expanded={isPetMenuOpen}
-                  onClick={() => setIsPetMenuOpen((isOpen) => !isOpen)}
-                >
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-100 text-2xl ring-1 ring-amber-200 transition group-hover:scale-105">
-                    {selectedPet.emoji}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-black text-slate-950">{selectedPet.name}</span>
-                    <span className="block truncate text-sm font-bold text-amber-800">{selectedPet.title}</span>
-                  </span>
-                  <span className={`shrink-0 text-amber-700 transition ${isPetMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true">
-                    ▾
-                  </span>
-                </button>
-
-                {isPetMenuOpen && (
-                  <div
-                    className="absolute right-0 top-full z-20 mt-2 max-h-80 w-full overflow-y-auto rounded-3xl border border-amber-200 bg-white/95 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur"
-                    role="listbox"
-                    aria-label="Choose a release pet"
-                  >
-                    {petOptions.map((pet) => (
-                      <button
-                        key={pet.id}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left transition hover:bg-amber-50 ${pet.id === selectedPetId ? 'bg-amber-100 ring-1 ring-amber-200' : ''}`}
-                        type="button"
-                        role="option"
-                        aria-selected={pet.id === selectedPetId}
-                        onClick={() => handlePetChange(pet.id)}
-                      >
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-100 text-xl ring-1 ring-amber-200">
-                          {pet.emoji}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-black text-slate-950">{pet.name}</span>
-                          <span className="block truncate text-sm font-bold text-slate-500">{pet.title}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <CustomList
+                label="Pet selector"
+                ariaLabel="Choose a release pet"
+                options={petOptions}
+                selectedId={selectedPetId}
+                onChange={handlePetChange}
+                getId={(pet) => pet.id}
+                getTitle={(pet) => pet.name}
+                getSubtitle={(pet) => pet.title}
+                getIcon={(pet) => pet.emoji}
+                className="sm:ml-auto sm:w-72"
+              />
             </div>
+
+            <CustomList
+              label="Example GitHub project"
+              ariaLabel="Choose an example GitHub project"
+              options={projectOptions}
+              selectedId={selectedProjectId}
+              onChange={handleProjectChange}
+              getId={(project) => project.id}
+              getTitle={(project) => `${project.owner}/${project.repo}`}
+              getSubtitle={(project) => project.description}
+              getIcon={(project) => project.icon}
+            />
 
             <div className="rounded-3xl border border-amber-200 bg-amber-50/70 p-4">
               <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-end">

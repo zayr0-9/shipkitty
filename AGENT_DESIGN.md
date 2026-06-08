@@ -1,8 +1,8 @@
 # AGENT_DESIGN.md
 
-## PetShip Website Aesthetic Lock
+## ShipKitty Website Aesthetic Lock
 
-PetShip is warm, playful, trustworthy, and mascot-forward. Keep the UI feeling like a polished indie developer tool for GitHub releases: friendly enough for pets, precise enough for engineering workflows.
+ShipKitty is warm, playful, trustworthy, and mascot-forward. Keep the UI feeling like a polished indie developer tool for GitHub releases: friendly enough for pets, precise enough for engineering workflows.
 
 ## Visual Direction
 
@@ -77,7 +77,7 @@ Do not introduce a competing primary color without a strong product reason.
 
 ## Guardrails
 
-- Do not add OAuth/GitHub App flows during MVP stage 1.
+- Do not add OAuth/GitHub App flows unless the product flow calls for it.
 - Keep anonymous copy-paste Markdown flow.
 - Preserve the warm amber/slate/cream identity.
 - Avoid broad visual rewrites; evolve the existing aesthetic consistently.
