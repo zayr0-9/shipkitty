@@ -46,6 +46,7 @@ export type GitHubRelease = {
   id: number;
   tag_name: string;
   name: string | null;
+  body: string | null;
   draft: boolean;
   prerelease: boolean;
   html_url: string;
@@ -109,25 +110,38 @@ export async function fetchRepo(accessToken: string, owner: string, repo: string
 
 export async function fetchReleases(accessToken: string, owner: string, repo: string) {
   const releases = await githubRequest<GitHubRelease[]>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases?per_page=100`, accessToken);
-  return releases.map((release) => ({
-    id: release.id,
-    tagName: release.tag_name,
-    name: release.name,
-    draft: release.draft,
-    prerelease: release.prerelease,
-    htmlUrl: release.html_url,
-    publishedAt: release.published_at,
-  }));
+  return releases.map(toReleaseSummary);
 }
 
-async function githubRequest<T>(path: string, accessToken: string): Promise<T> {
+export async function fetchReleaseByTag(accessToken: string, owner: string, repo: string, tag: string) {
+  const release = await githubRequest<GitHubRelease>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/tags/${encodeURIComponent(tag)}`, accessToken);
+  return release;
+}
+
+export async function updateReleaseBody(accessToken: string, owner: string, repo: string, releaseId: number, body: string) {
+  const release = await githubRequest<GitHubRelease>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/${releaseId}`, accessToken, {
+    method: 'PATCH',
+    body: { body },
+  });
+  return release;
+}
+
+type GitHubRequestOptions = {
+  method?: 'GET' | 'PATCH';
+  body?: unknown;
+};
+
+async function githubRequest<T>(path: string, accessToken: string, options: GitHubRequestOptions = {}): Promise<T> {
   const response = await fetch(`${GITHUB_API}${path}`, {
+    method: options.method ?? 'GET',
     headers: {
       accept: 'application/vnd.github+json',
       authorization: `Bearer ${accessToken}`,
       'user-agent': 'PetShip OAuth Worker',
       'x-github-api-version': '2022-11-28',
+      ...(options.body ? { 'content-type': 'application/json' } : {}),
     },
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
   if (!response.ok) {
@@ -138,6 +152,18 @@ async function githubRequest<T>(path: string, accessToken: string): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+export function toReleaseSummary(release: GitHubRelease) {
+  return {
+    id: release.id,
+    tagName: release.tag_name,
+    name: release.name,
+    draft: release.draft,
+    prerelease: release.prerelease,
+    htmlUrl: release.html_url,
+    publishedAt: release.published_at,
+  };
 }
 
 function toRepoSummary(repo: GitHubRepo) {

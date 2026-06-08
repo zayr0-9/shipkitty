@@ -10,6 +10,10 @@ type CustomListProps<T> = {
   getTitle: (option: T) => string;
   getSubtitle: (option: T) => string;
   getIcon: (option: T) => string;
+  placeholderTitle?: string;
+  placeholderSubtitle?: string;
+  placeholderIcon?: string;
+  disabled?: boolean;
   className?: string;
 };
 
@@ -23,10 +27,15 @@ export function CustomList<T>({
   getTitle,
   getSubtitle,
   getIcon,
+  placeholderTitle = 'Choose an option...',
+  placeholderSubtitle = '',
+  placeholderIcon = '▣',
+  disabled = false,
   className = '',
 }: CustomListProps<T>) {
   const detailsRef = useRef<HTMLDetailsElement>(null);
-  const selectedOption = options.find((option) => getId(option) === selectedId) ?? options[0];
+  const selectedOption = options.find((option) => getId(option) === selectedId);
+  const isDisabled = disabled || options.length === 0;
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -40,31 +49,37 @@ export function CustomList<T>({
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, []);
 
-  if (!selectedOption) return null;
+  const title = selectedOption ? getTitle(selectedOption) : placeholderTitle;
+  const subtitle = selectedOption ? getSubtitle(selectedOption) : placeholderSubtitle;
+  const icon = selectedOption ? getIcon(selectedOption) : placeholderIcon;
 
   return (
     <div className={`relative flex min-w-0 flex-col gap-2 font-bold text-slate-700 ${className}`}>
       <span>{label}</span>
-      <details ref={detailsRef} className="group/list">
-        <summary className="group flex min-h-14 w-full cursor-pointer list-none items-center gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-white to-amber-50 px-3 py-2 text-left shadow-inner shadow-amber-900/5 outline-none transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-900/10 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 [&::-webkit-details-marker]:hidden">
+      <details ref={detailsRef} className="group/list" onToggle={(event) => { if (isDisabled) event.currentTarget.removeAttribute('open'); }}>
+        <summary
+          className={`group flex min-h-14 w-full list-none items-center gap-3 rounded-2xl border border-amber-200 bg-gradient-to-br from-white to-amber-50 px-3 py-2 text-left shadow-inner shadow-amber-900/5 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 [&::-webkit-details-marker]:hidden ${isDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-900/10'}`}
+          aria-disabled={isDisabled}
+        >
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-100 text-2xl ring-1 ring-amber-200 transition group-hover:scale-105">
-            {getIcon(selectedOption)}
+            {icon}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate font-black text-slate-950">{getTitle(selectedOption)}</span>
-            <span className="block truncate text-sm font-bold text-amber-800">{getSubtitle(selectedOption)}</span>
+            <span className="block truncate font-black text-slate-950">{title}</span>
+            <span className="block truncate text-sm font-bold text-amber-800">{subtitle}</span>
           </span>
           <span className="shrink-0 text-amber-700 transition group-open/list:rotate-180" aria-hidden="true">
             ▾
           </span>
         </summary>
 
-        <div
-          className="absolute right-0 top-full z-20 mt-2 max-h-80 w-full overflow-y-auto rounded-3xl border border-amber-200 bg-white/95 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur"
-          role="listbox"
-          aria-label={ariaLabel}
-        >
-          {options.map((option) => {
+        {!isDisabled && (
+          <div
+            className="absolute right-0 top-full z-20 mt-2 max-h-80 w-full overflow-y-auto rounded-3xl border border-amber-200 bg-white/95 p-2 shadow-2xl shadow-amber-900/20 backdrop-blur"
+            role="listbox"
+            aria-label={ariaLabel}
+          >
+            {options.map((option) => {
             const id = getId(option);
             const isSelected = id === selectedId;
 
@@ -89,8 +104,9 @@ export function CustomList<T>({
                 </span>
               </button>
             );
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </details>
     </div>
   );

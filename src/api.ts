@@ -29,6 +29,13 @@ export type UploadImageResponse = {
   html: string;
 };
 
+export type AppendGitHubReleaseResponse = {
+  ok: true;
+  updated: boolean;
+  mode: 'inserted' | 'replaced' | 'unchanged';
+  release: { id: number; tagName: string; htmlUrl: string };
+};
+
 export type SessionUser = {
   id: string;
   githubUserId: string;
@@ -118,6 +125,15 @@ export async function uploadImage(uploadUrl: string, file: Blob): Promise<Upload
   });
 
   return parseApiResponse<UploadImageResponse>(response);
+}
+
+export async function appendMarkdownToGitHubRelease(imageId: string): Promise<AppendGitHubReleaseResponse> {
+  const response = await fetch(apiUrl(`/api/images/${encodeURIComponent(imageId)}/github-release`), {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  return parseApiResponse<AppendGitHubReleaseResponse>(response);
 }
 
 export async function fetchMarkdown(owner: string, repo: string, tag: string): Promise<UploadImageResponse | null> {
