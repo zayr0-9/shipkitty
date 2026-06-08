@@ -32,6 +32,12 @@ const repoPrivateLabel = {
   false: '🌐',
 } satisfies Record<string, string>;
 
+const releaseStatusIcon = {
+  draft: '📝',
+  prerelease: '🧪',
+  release: '🏷️',
+} satisfies Record<string, string>;
+
 const petOptions: PetOption[] = [
   { id: 'bobby', name: 'Bobby', title: 'Chief Purr Officer', emoji: '🐱' },
   { id: 'luna', name: 'Luna', title: 'Release Retriever', emoji: '🐶' },
@@ -419,17 +425,20 @@ function App() {
             </label>
 
             {releases.length > 0 && (
-              <label className={labelClass}>
-                Release picker
-                <select className={inputClass} value="" onChange={(event) => { if (event.target.value) { setReleaseTag(event.target.value); resetReleaseAppendState(); } }}>
-                  <option value="">Choose a GitHub release...</option>
-                  {releases.map((release) => (
-                    <option key={release.id} value={release.tagName}>
-                      {release.tagName}{release.name ? ` · ${release.name}` : ''}{release.draft ? ' · draft' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <CustomList
+                label="Release picker"
+                ariaLabel="Choose a GitHub release"
+                options={releases}
+                selectedId={releaseTag}
+                onChange={(tagName) => { setReleaseTag(tagName); resetReleaseAppendState(); }}
+                getId={(release) => release.tagName}
+                getTitle={(release) => release.tagName}
+                getSubtitle={(release) => [release.name, release.draft ? 'draft' : release.prerelease ? 'prerelease' : 'release'].filter(Boolean).join(' · ')}
+                getIcon={(release) => releaseStatusIcon[release.draft ? 'draft' : release.prerelease ? 'prerelease' : 'release']}
+                placeholderTitle="Choose a GitHub release..."
+                placeholderSubtitle="Select a loaded release or type a tag manually"
+                placeholderIcon="🏷️"
+              />
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
