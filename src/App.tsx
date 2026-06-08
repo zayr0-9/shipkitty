@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import {
+  appendMarkdownToGitHubRelease,
   fetchGitHubReleases,
   fetchGitHubRepos,
   getSession,
@@ -17,6 +18,7 @@ import { ImageCropEditor } from './components/ImageCropEditor';
 import { compressImage, type CompressedImage, type ImageCrop } from './image';
 
 type Status = 'idle' | 'compressing' | 'uploading' | 'done' | 'error';
+type ReleaseAppendStatus = 'idle' | 'updating' | 'done' | 'error';
 
 type PetOption = {
   id: string;
@@ -92,6 +94,9 @@ function App() {
   const [releases, setReleases] = useState<GitHubRelease[]>([]);
   const [repoStatus, setRepoStatus] = useState('Sign in to load repos or verify manual entries.');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [releaseAppendStatus, setReleaseAppendStatus] = useState<ReleaseAppendStatus>('idle');
+  const [releaseAppendMessage, setReleaseAppendMessage] = useState('');
+  const [releaseAppendUrl, setReleaseAppendUrl] = useState('');
 
   useEffect(() => {
     if (!compressed) {
@@ -139,6 +144,7 @@ function App() {
     setResult(null);
     setCopied(false);
     setMessage('');
+    resetReleaseAppendState();
 
     if (!nextFile) return;
 
@@ -173,6 +179,7 @@ function App() {
     event.preventDefault();
     setCopied(false);
     setResult(null);
+    resetReleaseAppendState();
 
     if (!sessionUser) {
       setStatus('error');
@@ -204,10 +211,39 @@ function App() {
       const uploaded = await uploadImage(prepared.uploadUrl, compressed.blob);
       setResult(uploaded);
       setStatus('done');
-      setMessage('Done — copy this into your GitHub release notes.');
+      setMessage('Done — copy this into your GitHub release notes or append it automatically.');
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Upload failed.');
+    }
+  }
+
+  function resetReleaseAppendState() {
+    setReleaseAppendStatus('idle');
+    setReleaseAppendMessage('');
+    setReleaseAppendUrl('');
+  }
+
+  async function handleAppendToRelease() {
+    if (!result) return;
+
+    try {
+      setReleaseAppendStatus('updating');
+      setReleaseAppendMessage('Updating GitHub release notes...');
+      setReleaseAppendUrl('');
+      const response = await appendMarkdownToGitHubRelease(result.imageId);
+      setReleaseAppendStatus('done');
+      setReleaseAppendUrl(response.release.htmlUrl);
+      setReleaseAppendMessage(
+        response.mode === 'replaced'
+          ? 'Updated the existing ShipKitty block in the selected GitHub release.'
+          : response.mode === 'unchanged'
+            ? 'The selected GitHub release already has this ShipKitty block.'
+            : 'Appended ShipKitty Markdown to the selected GitHub release.',
+      );
+    } catch (error) {
+      setReleaseAppendStatus('error');
+      setReleaseAppendMessage(error instanceof Error ? error.message : 'Could not update GitHub release notes.');
     }
   }
 
@@ -233,6 +269,7 @@ function App() {
     setSessionUser(null);
     setRepos([]);
     setReleases([]);
+    resetReleaseAppendState();
     setRepoStatus('Signed out. Sign in to verify GitHub repo access.');
   }
 
@@ -255,6 +292,7 @@ function App() {
     setOwner(selected.owner);
     setRepo(selected.name);
     setReleases([]);
+    resetReleaseAppendState();
     setRepoStatus(`Selected ${selected.fullName}. Loading releases...`);
     try {
       const nextReleases = await fetchGitHubReleases(selected.owner, selected.name);
@@ -272,6 +310,7 @@ function App() {
       setSelectedProjectId('');
       setOwner(verified.owner);
       setRepo(verified.name);
+      resetReleaseAppendState();
       const nextReleases = await fetchGitHubReleases(verified.owner, verified.name);
       setReleases(nextReleases);
       setRepoStatus(`Verified ${verified.fullName}. ${nextReleases.length ? 'Pick a release below.' : 'No releases found; type a tag manually.'}`);
@@ -387,11 +426,11 @@ function App() {
             <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
               <label className={labelClass}>
                 GitHub owner
-                <input className={inputClass} value={owner} onChange={(event) => setOwner(event.target.value)} required pattern="[A-Za-z0-9_.\\-]+" />
+                <input className={inputClass} value={owner} onChange={(event) => { setOwner(event.target.value); resetReleaseAppendState(); }} required pattern="[A-Za-z0-9_.\\-]+" />
               </label>
               <label className={labelClass}>
                 Repo name
-                <input className={inputClass} value={repo} onChange={(event) => setRepo(event.target.value)} required pattern="[A-Za-z0-9_.\\-]+" />
+                <input className={inputClass} value={repo} onChange={(event) => { setRepo(event.target.value); resetReleaseAppendState(); }} required pattern="[A-Za-z0-9_.\\-]+" />
               </label>
               <button className={secondaryButtonClass} type="button" onClick={handleVerifyRepo} disabled={!sessionUser}>
                 Verify repo
@@ -400,13 +439,13 @@ function App() {
 
             <label className={labelClass}>
               Release tag
-              <input className={inputClass} value={releaseTag} onChange={(event) => setReleaseTag(event.target.value)} required placeholder="v1.2.0" />
+              <input className={inputClass} value={releaseTag} onChange={(event) => { setReleaseTag(event.target.value); resetReleaseAppendState(); }} required placeholder="v1.2.0" />
             </label>
 
             {releases.length > 0 && (
               <label className={labelClass}>
                 Release picker
-                <select className={inputClass} value="" onChange={(event) => event.target.value && setReleaseTag(event.target.value)}>
+                <select className={inputClass} value="" onChange={(event) => { if (event.target.value) { setReleaseTag(event.target.value); resetReleaseAppendState(); } }}>
                   <option value="">Choose a GitHub release...</option>
                   {releases.map((release) => (
                     <option key={release.id} value={release.tagName}>
@@ -468,10 +507,28 @@ function App() {
         <section className={`${cardClass} mt-5 flex flex-col gap-4 sm:mt-6 sm:gap-5`}>
           <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
             <h2 className="text-xl font-black text-slate-950 sm:text-2xl">GitHub Markdown</h2>
-            <button className={secondaryButtonClass} onClick={() => copyMarkdown(markdown)} type="button">
-              {copied ? 'Copied!' : 'Copy Markdown'}
-            </button>
+            <div className="grid gap-2 sm:flex sm:flex-wrap">
+              {result && (
+                <button className={primaryButtonClass} onClick={handleAppendToRelease} type="button" disabled={releaseAppendStatus === 'updating'}>
+                  {releaseAppendStatus === 'updating' ? 'Updating release...' : 'Append to GitHub release'}
+                </button>
+              )}
+              <button className={secondaryButtonClass} onClick={() => copyMarkdown(markdown)} type="button">
+                {copied ? 'Copied!' : 'Copy Markdown'}
+              </button>
+            </div>
           </div>
+          {releaseAppendMessage && (
+            <p className={releaseAppendStatus === 'error' ? 'font-bold text-red-700' : 'font-bold text-emerald-700'}>
+              {releaseAppendMessage}
+              {releaseAppendUrl && (
+                <>
+                  {' '}
+                  <a className="underline decoration-emerald-300 underline-offset-4" href={releaseAppendUrl} target="_blank" rel="noreferrer">Open GitHub release</a>
+                </>
+              )}
+            </p>
+          )}
           <pre className="max-w-full overflow-x-auto whitespace-pre-wrap break-all rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-slate-50 sm:break-words sm:rounded-3xl sm:p-5 sm:text-sm sm:leading-6">{markdown}</pre>
           {result?.html && (
             <details className="font-bold text-slate-800">

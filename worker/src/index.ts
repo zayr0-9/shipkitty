@@ -6,6 +6,7 @@ import {
   getPreparedImage,
   getReleaseImage,
   getReleaseImageByPublicRoute,
+  getReleaseImageForUser,
   insertOAuthState,
   insertPet,
   insertPreparedImage,
@@ -14,8 +15,8 @@ import {
   upsertRepo,
   upsertUserFromGitHub,
 } from './db';
-import { createOAuthStart, exchangeOAuthCode, fetchGitHubUser, fetchReleases, fetchRepo, fetchUserRepos } from './github';
-import { buildHtml, buildMarkdown } from './markdown';
+import { createOAuthStart, exchangeOAuthCode, fetchGitHubUser, fetchReleaseByTag, fetchReleases, fetchRepo, fetchUserRepos, toReleaseSummary, updateReleaseBody } from './github';
+import { buildHtml, buildMarkdown, upsertShipKittySnippet } from './markdown';
 import { assertUploadRateLimit } from './rateLimit';
 import type { Env, PreparedImageMetadata } from './types';
 import { assertAllowedContentLength, assertAllowedContentType, assertImageBytes } from './validation';
@@ -65,6 +66,11 @@ export default {
       const uploadMatch = url.pathname.match(/^\/api\/images\/([^/]+)\/upload$/);
       if (uploadMatch) {
         return request.method === 'PUT' ? handleUpload(request, env, uploadMatch[1]) : methodNotAllowed();
+      }
+
+      const githubReleaseMatch = url.pathname.match(/^\/api\/images\/([^/]+)\/github-release$/);
+      if (githubReleaseMatch) {
+        return request.method === 'POST' ? handleGitHubReleaseUpdate(request, env, githubReleaseMatch[1]) : methodNotAllowed();
       }
 
       if (url.pathname === '/api/markdown') {
@@ -277,6 +283,35 @@ async function handleUpload(request: Request, env: Env, imageId: string) {
   });
 
   return corsJson(request, { imageId, publicUrl: prepared.public_url, markdown: prepared.markdown, html: prepared.html });
+}
+
+async function handleGitHubReleaseUpdate(request: Request, env: Env, imageId: string) {
+  const user = await requireSessionUser(request, env);
+  const row = await getReleaseImageForUser(env.DB, imageId, user.id);
+  if (!row) return notFound();
+
+  const { summary } = await fetchRepo(user.accessToken, row.owner, row.repo);
+  if (summary.permission && !['admin', 'maintain', 'push'].includes(summary.permission)) {
+    throw new AuthError('GitHub write access is required to update this release.', 403);
+  }
+
+  const release = await fetchReleaseByTag(user.accessToken, row.owner, row.repo, row.release_tag);
+  const merged = upsertShipKittySnippet(release.body, row.markdown);
+  const originalBody = release.body?.trimEnd() ?? '';
+  const updated = merged.body !== originalBody;
+  const nextRelease = updated ? await updateReleaseBody(user.accessToken, row.owner, row.repo, release.id, merged.body) : release;
+  const now = new Date().toISOString();
+
+  await audit(env.DB, {
+    userId: user.id,
+    eventType: 'github_release_updated',
+    ipHash: await getIpHash(request),
+    userAgent: request.headers.get('user-agent') ?? undefined,
+    metadata: { imageId, owner: row.owner, repo: row.repo, releaseTag: row.release_tag, releaseId: release.id, mode: merged.mode, updated },
+    now,
+  });
+
+  return corsJson(request, { ok: true, updated, mode: merged.mode, release: toReleaseSummary(nextRelease) });
 }
 
 async function handleMarkdown(request: Request, url: URL, env: Env) {

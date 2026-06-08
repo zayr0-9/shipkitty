@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { replaceReleaseImage } from './db';
+import { getReleaseImageForUser, replaceReleaseImage } from './db';
 
 type Statement = {
   sql: string;
@@ -68,5 +68,18 @@ describe('replaceReleaseImage', () => {
     const upsert = statements.find((statement) => statement.sql.includes('INSERT INTO release_images'));
     expect(upsert?.sql).toContain('id = excluded.id');
     expect(previous).toBe('repos/owner/repo/releases/v1/img_old.webp');
+  });
+});
+
+describe('getReleaseImageForUser', () => {
+  it('filters active release image lookup by image id and user id', async () => {
+    const { db, statements } = createMockD1(null);
+
+    await getReleaseImageForUser(db, 'img_1', 'user_1');
+
+    const query = statements[0];
+    expect(query.sql).toContain('JOIN repos ON repos.id = release_images.repo_id');
+    expect(query.sql).toContain('WHERE release_images.id = ? AND release_images.user_id = ?');
+    expect(query.values).toEqual(['img_1', 'user_1']);
   });
 });

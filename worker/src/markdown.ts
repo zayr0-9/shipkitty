@@ -40,3 +40,17 @@ function escapeHtml(value: string) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 }
+
+export type ShipKittySnippetMode = 'inserted' | 'replaced' | 'unchanged';
+
+export function upsertShipKittySnippet(existingBody: string | null | undefined, snippet: string): { body: string; mode: ShipKittySnippetMode } {
+  const body = existingBody?.trimEnd() ?? '';
+  const pattern = /<!-- shipkitty:start -->[\s\S]*?<!-- shipkitty:end -->/;
+
+  if (pattern.test(body)) {
+    const nextBody = body.replace(pattern, snippet);
+    return { body: nextBody, mode: nextBody === body ? 'unchanged' : 'replaced' };
+  }
+
+  return { body: body ? `${body}\n\n${snippet}` : snippet, mode: 'inserted' };
+}

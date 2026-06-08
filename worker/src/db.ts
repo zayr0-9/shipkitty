@@ -258,3 +258,24 @@ type PreparedImageRow = {
   created_at: string;
   expires_at: string;
 };
+
+export async function getReleaseImageForUser(db: D1Database, imageId: string, userId: string) {
+  return db
+    .prepare(
+      `SELECT release_images.id, release_images.user_id, release_images.release_tag, release_images.markdown, release_images.public_url,
+              repos.owner, repos.name AS repo
+       FROM release_images
+       JOIN repos ON repos.id = release_images.repo_id
+       WHERE release_images.id = ? AND release_images.user_id = ?`,
+    )
+    .bind(imageId, userId)
+    .first<{
+      id: string;
+      user_id: string;
+      release_tag: string;
+      markdown: string;
+      public_url: string;
+      owner: string;
+      repo: string;
+    }>();
+}
